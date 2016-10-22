@@ -20,7 +20,7 @@ int main(int argc, char **argv)
 
     srand(time(NULL));
 
-    unsigned long data_size = random() % 1024;
+    unsigned long data_size = (random() % 1024) + 50; // size must not be zero
     unsigned long compressed_buf_size = data_size*11/10 + 12;
     unsigned long uncompressed_data_size;
 
@@ -59,7 +59,7 @@ int main(int argc, char **argv)
 
 
     // size divide by 4 to test if the follow buffer reallocation works
-    uncompressed_data_size = data_size/4; 
+    uncompressed_data_size = compressed_buf_size/2; 
 
 retry_uncompress:
     fprintf(stderr, "uncompress dst buffer is %ld bytes\n", uncompressed_data_size);
@@ -91,6 +91,8 @@ retry_uncompress:
     else {
         fprintf(stderr, "compression/uncompression success!\n");
     }
+
+    fprintf(stderr, "\n");
 
     return 0;
 }
