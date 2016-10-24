@@ -1,0 +1,3 @@
+
+a.out: ../../source/compressprotocol/CompressUtil.cpp:129: static int CompressUtil::Zerodecompress(const unsigned char*, long unsigned int, unsigned char*, long unsigned int&): Assertion `iteratorOut < outputNumBytes' failed.
+

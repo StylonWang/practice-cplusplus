@@ -32,7 +32,7 @@ struct FTDCHeader {
 struct FTDField {
     uint32_t FieldId;
     uint16_t FieldLength;
-    //uint8_t *DataItem;
+    uint8_t *DataItem;
 };
 
 #pragma pack(pop)
@@ -51,6 +51,20 @@ enum FTDTag_t {
     FTDTagKeepAlive = 0x04,
     FTDTagTradedate = 0x05,
     FTDTagTarget = 0x06,
+};
+
+struct FTD {
+
+    struct FTDHeader header;
+
+    // optional ExtHeader and data
+    struct FTDExtHeader *extHeader;
+    uint8_t *ftdTagData;
+
+    // optional FTDC header and fields data
+    struct FTDCHeader *ftdcHeader;
+
+    std::vector<struct FTDField> fields;
 };
 
 
