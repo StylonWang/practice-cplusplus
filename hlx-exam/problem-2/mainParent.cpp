@@ -3,18 +3,33 @@
 #include <pthread.h>
 #include <unistd.h>
 #include <time.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <semaphore.h>
+#include <errno.h>
+#include <string.h>
+#include <signal.h>
 
 #include <vector>
+
+#include "common.h"
 
 #define MODULE_NAME "mainParent"
 
 // TODO: protect fprintf with semaphore
+static sem_t *g_print_sem;
 
 #define dprintf(fmt, args...) \
     do { \
+        sem_wait(g_print_sem); \
         fprintf(stdout, "[%s] " fmt, MODULE_NAME, ## args); \
+        sem_post(g_print_sem); \
     } while(0)
 
+#define dprintf_lock() do { sem_wait(g_print_sem); } while(0)
+#define dprintf_unlock() do { sem_post(g_print_sem); } while(0)
+
+// MUST protect dprintf_simple with dprintf_lock/unlock by yourself
 #define dprintf_simple(fmt, args...) \
     do { \
         fprintf(stdout, fmt, ## args); \
@@ -56,22 +71,43 @@ void generateIntegers(int n, std::vector<char> &integers)
 {
     integers.clear(); // is this needed?
 
-    dprintf("Generating %d random integers: ", n);
+    dprintf_lock();
+
+    dprintf_simple("Generating %d random integers: ", n);
     for(int i=0; i<n; ++i) {
         char t = 1+random()%50;
         integers.push_back(t);
         dprintf_simple("%d ", t);
     }
     dprintf_simple("\n");
+
+    dprintf_unlock();
+}
+
+void signal_handler(int signo)
+{
+    fprintf(stderr, "got signal %d, exit\n", signo);
+    sem_close(g_print_sem);
+
+    //TODO: kill childs
+    exit(1);
 }
 
 int main(int argc, char **argv)
 {
     pid_t pidA, pidB;
 
-    dprintf("Main Process Started\n");
-
+    // initialize
     srandom(time(NULL));
+    g_print_sem = sem_open(PRINT_SEM_KEY, O_CREAT, 0644, 1); // binary semaphore
+    if(SEM_FAILED==g_print_sem) {
+        fprintf(stderr, "cannot open semaphore: %s\n", strerror(errno));
+        exit(1);
+    }
+
+    signal(SIGINT, signal_handler); // don't quit on Ctrl-C
+
+    dprintf("Main Process Started\n");
 
     pidA = runChildA();
     pidB = runChildB();
@@ -100,6 +136,8 @@ int main(int argc, char **argv)
     dprintf("Process Waits\n");
     waitForChilds(pidA, pidB);
     dprintf("Process Exits\n");
+
+    sem_close(g_print_sem);
 
     return 0;
 }
