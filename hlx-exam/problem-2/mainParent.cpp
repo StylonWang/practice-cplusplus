@@ -16,7 +16,6 @@
 
 #define MODULE_NAME "mainParent"
 
-// TODO: protect fprintf with semaphore
 static sem_t *g_print_sem;
 
 #define dprintf(fmt, args...) \
@@ -35,10 +34,19 @@ static sem_t *g_print_sem;
         fprintf(stdout, fmt, ## args); \
     } while(0)
 
-pid_t runChildA(void)
-{
 
-    //dprintf("ChildA Process Created\n");
+FILE *runChildA(void)
+{
+    FILE *pipe = popen("./childA", "w");
+    
+    if(pipe) {
+        dprintf("ChildA Process Created\n");
+    }
+    else {
+        dprintf("ChildA Process NOT created: %s\n", strerror(errno));
+    }
+
+    return pipe;
 }
 
 pid_t runChildB(void)
@@ -47,9 +55,14 @@ pid_t runChildB(void)
     //dprintf("ChildB Process Created\n");
 }
 
-void passToChildA(std::vector<char> &integers)
+void passToChildA(FILE *pipe, std::vector<char> &integers)
 {
-
+    for(unsigned int i=0; i<integers.size(); ++i) {
+        //fprintf(stderr, "send %d\n", integers[i]); //debug
+        fprintf(pipe, "%d\n", integers[i]);
+    }
+    fprintf(pipe, "0\n"); // end this batch
+    fflush(pipe);
 }
 
 void passToChildB(std::vector<char> &integers)
@@ -57,14 +70,15 @@ void passToChildB(std::vector<char> &integers)
 
 }
 
-void shutdownChilds(pid_t pidA, pid_t pidB)
+void shutdownChilds(FILE *pipeA, pid_t pidB)
 {
-
+    // shutdown childA
+    fprintf(pipeA, "-1\n"); // 
 }
 
-void waitForChilds(pid_t pidA, pid_t pidB)
+void waitForChilds(FILE *pipeA, pid_t pidB)
 {
-
+    pclose(pipeA);
 }
 
 void generateIntegers(int n, std::vector<char> &integers)
@@ -73,7 +87,7 @@ void generateIntegers(int n, std::vector<char> &integers)
 
     dprintf_lock();
 
-    dprintf_simple("Generating %d random integers: ", n);
+    dprintf_simple("[%s] Generating %d random integers: ", MODULE_NAME, n);
     for(int i=0; i<n; ++i) {
         char t = 1+random()%50;
         integers.push_back(t);
@@ -95,7 +109,8 @@ void signal_handler(int signo)
 
 int main(int argc, char **argv)
 {
-    pid_t pidA, pidB;
+    FILE *pipeA;
+    pid_t pidB;
 
     // initialize
     srandom(time(NULL));
@@ -105,11 +120,11 @@ int main(int argc, char **argv)
         exit(1);
     }
 
-    signal(SIGINT, signal_handler); // don't quit on Ctrl-C
+    signal(SIGINT, signal_handler);
 
     dprintf("Main Process Started\n");
 
-    pidA = runChildA();
+    pipeA = runChildA();
     pidB = runChildB();
 
     while(1) {
@@ -117,7 +132,7 @@ int main(int argc, char **argv)
         char buf[8];
         std::vector<char> integers;
 
-        dprintf("Enter a positive integer or -1 to exit:     ");
+        dprintf("Enter a positive integer or -1 to exit:\n");
 
         fgets(buf, sizeof(buf), stdin);
         n = atoi(buf);
@@ -127,14 +142,14 @@ int main(int argc, char **argv)
 
         generateIntegers(n, integers);
 
-        passToChildA(integers);
+        passToChildA(pipeA, integers);
         passToChildB(integers);
     }
 
-    shutdownChilds(pidA, pidB);
+    shutdownChilds(pipeA, pidB);
 
     dprintf("Process Waits\n");
-    waitForChilds(pidA, pidB);
+    waitForChilds(pipeA, pidB);
     dprintf("Process Exits\n");
 
     sem_close(g_print_sem);
