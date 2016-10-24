@@ -1,3 +1,9 @@
+/*
+ * Test if Zerodecompress/compress in libCFFEXtraderapi.so works as expected.
+ *
+ *
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

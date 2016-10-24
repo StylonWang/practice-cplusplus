@@ -8,14 +8,13 @@
 #include <sys/socket.h>
 
 #include <pcap/pcap.h>
-//#include <zlib.h>
 
 #include <set>
 #include <string>
 #include <vector>
 
-#include "../tcpiphdr.h"
-#include "../ftdhdr.h"
+#include "tcpiphdr.h"
+#include "ftdhdr.h"
 
 static long g_count = 0;
 
@@ -31,73 +30,15 @@ static unsigned char *z_inflate(const unsigned char *p, int len, unsigned long &
 {
     unsigned char *c = NULL;
 
-    //debug
-    for(int i=0; i<len; ++i) {
-        if(0==i%8) fprintf(stderr, "\n");
-        fprintf(stderr, "%02x ",p[i]);
-    }
-    fprintf(stderr, "\n");
-
-    out_len = len*100;
+    out_len = len*10;
     c = (unsigned char *)malloc(out_len);
     CompressUtil::Zerodecompress(p, len, c, out_len);
 
     fprintf(stderr, "inflated %d to %ld\n", len, out_len);
 
-    //debug
-    for(int i=0; i<out_len; ++i) {
-        if(0==i%8) fprintf(stderr, "\n");
-        fprintf(stderr, "%02x ",c[i]);
-    }
-    fprintf(stderr, "\n");
-
-    exit(1); //debug
     return c;
 }
 
-#if 0
-static unsigned char *z_inflate(const unsigned char *p, int len, int *out_len)
-{
-    unsigned char *c = NULL;
-    int result;
-
-    unsigned long uncompressed_data_size;
-
-    // mutiply compressed size by 2 for a start
-    uncompressed_data_size = len; 
-
-retry_uncompress:
-    //fprintf(stderr, "uncompress dst buffer is %ld bytes\n", uncompressed_data_size);
-    c = (unsigned char *)malloc(uncompressed_data_size);
-
-    result = uncompress(c, &uncompressed_data_size, p, len);
-
-    if(Z_OK==result) {
-        //fprintf(stderr, "uncompress success\n");
-        fprintf(stderr, "UnCompressed success with size %ld\n", uncompressed_data_size);
-        if(out_len) *out_len = uncompressed_data_size;
-    }
-    else if(Z_MEM_ERROR==result) {
-        fprintf(stderr, "uncompress: out of memory\n");
-        free(c);
-        return NULL;
-    }
-    else if(Z_BUF_ERROR==result) {
-        fprintf(stderr, "uncompressed: output buffer not large enough!\n");
-        free(c);
-        uncompressed_data_size *= 2;
-        fprintf(stderr, "try again\n");
-        goto retry_uncompress;
-    }
-    else {
-        fprintf(stderr, "unexpected zresult %d\n", result);
-        free(c);
-        c = NULL;
-    }
-
-    return c;
-}
-#endif 
 
 static void parse_ftd_packet(const struct timeval *ts, const unsigned char *buf, int len)
 {
@@ -157,6 +98,10 @@ static void parse_ftd_packet(const struct timeval *ts, const unsigned char *buf,
         }
 
         ftdc = (FTDCHeader *)n;
+
+        // above decompress is not working and cause following parsing to seg-fault.
+        // skip parsing for now.
+        ftdc = NULL;
     }
     else {
         ftdc = NULL;
@@ -182,8 +127,6 @@ static void parse_ftd_packet(const struct timeval *ts, const unsigned char *buf,
             f = (struct FTDField *) (((unsigned char *)f) + flen);
         }
 
-        //debug
-        exit(1);
     }
                            
     fprintf(stdout, "\n");

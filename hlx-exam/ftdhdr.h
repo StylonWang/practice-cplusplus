@@ -55,6 +55,7 @@ enum FTDTag_t {
 
 struct FTD {
 
+    struct timeval ts;
     struct FTDHeader header;
 
     // optional ExtHeader and data
@@ -65,6 +66,14 @@ struct FTD {
     struct FTDCHeader *ftdcHeader;
 
     std::vector<struct FTDField> fields;
+
+public:
+    FTD() 
+    { 
+        extHeader = NULL; 
+        ftdTagData = NULL;
+        ftdcHeader = NULL; 
+    }
 };
 
 
