@@ -16,7 +16,6 @@
 
 #define MODULE_NAME "childA"
 
-// TODO: protect fprintf with semaphore
 static sem_t *g_print_sem;
 
 #define dprintf(fmt, args...) \
@@ -52,7 +51,8 @@ int main(int argc, char **argv)
         exit(1);
     }
 
-    signal(SIGINT, signal_handler);
+    signal(SIGINT, SIG_IGN);
+    signal(SIGTERM, signal_handler);
 
     dprintf("Child process started\n");
 
