@@ -6,6 +6,7 @@ Problem 1: unfinished
 
         Usage: 
         
+        $ cd problem-1
         $ make
         $ ./problem-1 alltraffic.pcap
 
