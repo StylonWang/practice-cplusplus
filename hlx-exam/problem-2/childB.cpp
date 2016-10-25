@@ -158,7 +158,7 @@ int main(int argc, char **argv)
         sum = 0;
         for(unsigned int i=0; i<integers.size(); ++i) {
             double dev = ( (double)integers[i] - mean);
-            sum += dev*dev;
+            sum += (dev*dev);
         }
         variance = sum/integers.size();
         stddev = sqrt(variance);
