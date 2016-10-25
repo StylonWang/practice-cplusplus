@@ -1,6 +1,6 @@
 
 default::
-	g++ -Wall Main.cpp -o Main -pthread
+	g++ -Wall problem-3.cpp -o problem-3 -pthread
 
 clean::
-	rm -f Main
+	rm -f problem-3
