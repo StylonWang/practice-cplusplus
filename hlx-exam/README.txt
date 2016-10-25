@@ -8,6 +8,7 @@ Problem 1: unfinished
         
         $ cd problem-1
         $ make
+        $ export LD_LIBRARY_PATH=`pwd`
         $ ./problem-1 alltraffic.pcap
 
         As demonstrated in zcompress.cpp, Zerocompress/decompress 
