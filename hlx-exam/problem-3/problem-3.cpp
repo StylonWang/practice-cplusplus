@@ -7,11 +7,23 @@
 
 using namespace std;
 
+// mutex provide atomicity
 static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t cond_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+// condition variables used as signals between threads,
+// so each thread is less likely to contend for "mutex" lock every 900 mili seconds.
+static pthread_cond_t cond_ab = PTHREAD_COND_INITIALIZER;
+static pthread_cond_t cond_bc = PTHREAD_COND_INITIALIZER;
+static pthread_cond_t cond_cd = PTHREAD_COND_INITIALIZER;
+
 static long count = 0;
 
 void *thread_A_routine(void *data)
 {
+    // signal to thread B to start execution
+    pthread_cond_signal(&cond_ab);
+
     while(1) {
         usleep(900*1000);
 
@@ -26,6 +38,15 @@ void *thread_A_routine(void *data)
 
 void *thread_B_routine(void *data)
 {
+    // wait for signal to thread A
+    pthread_mutex_lock(&cond_mutex);
+    pthread_cond_wait(&cond_ab, &cond_mutex);
+    pthread_mutex_unlock(&cond_mutex);
+    // start execution 100 miliseconds later
+    usleep(100*1000);
+    // signal to thread C to start execution
+    pthread_cond_signal(&cond_bc);
+
     while(1) {
         usleep(900*1000);
 
@@ -40,6 +61,15 @@ void *thread_B_routine(void *data)
 
 void *thread_C_routine(void *data)
 {
+    // wait for signal to thread B
+    pthread_mutex_lock(&cond_mutex);
+    pthread_cond_wait(&cond_bc, &cond_mutex);
+    pthread_mutex_unlock(&cond_mutex);
+    // start execution 100 miliseconds later
+    usleep(100*1000);
+    // signal to thread C to start execution
+    pthread_cond_signal(&cond_cd);
+
     while(1) {
         usleep(900*1000);
 
@@ -54,6 +84,13 @@ void *thread_C_routine(void *data)
 
 void *thread_D_routine(void *data)
 {
+    // wait for signal to thread C
+    pthread_mutex_lock(&cond_mutex);
+    pthread_cond_wait(&cond_cd, &cond_mutex);
+    pthread_mutex_unlock(&cond_mutex);
+    // start execution 100 miliseconds later
+    usleep(100*1000);
+
     while(1) {
 
         usleep(900*1000);
